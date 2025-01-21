@@ -5,6 +5,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import * as Location from "expo-location";
 import MapView, { Marker } from "react-native-maps";
 import { StatusBar } from "expo-status-bar";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 
 const Stack = createStackNavigator();
 
@@ -22,6 +23,18 @@ function LoginScreen({ navigation }) {
 
 function MainScreen() {
   const [location, setLocation] = useState(null);
+  const [region, setRegion] = useState(null);
+
+  const handleLocationSelect = (data, details) => {
+    const { lat, lng } = details.geometry.location;
+    setRegion({
+      latitude: lat,
+      longitude: lng,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    });
+    console.log(`Selected location: Latitude ${lat}, Longitude ${lng}`);
+  };
 
   useEffect(() => {
     (async () => {
@@ -33,6 +46,12 @@ function MainScreen() {
 
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
     })();
   }, []);
 
@@ -41,17 +60,28 @@ function MainScreen() {
   return (
     <View style={styles.container}>
       <Text>Enter Open House Address</Text>
-      {location && (
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-        >
-          <Marker coordinate={location.coords} title='Your Location' />
+      <GooglePlacesAutocomplete
+        placeholder='Search'
+        onPress={handleLocationSelect}
+        query={{
+          key: "AIzaSyDNWE3iJJTZ1wQkQUAO19C1AOkKqMIzoFA",
+          language: "en",
+        }}
+        fetchDetails={true}
+        styles={{
+          textInputContainer: {
+            width: "100%",
+          },
+          textInput: {
+            height: 38,
+            color: "#5d5d5d",
+            fontSize: 16,
+          },
+        }}
+      />
+      {region && (
+        <MapView style={styles.map} region={region}>
+          <Marker coordinate={region} title='Selected Location' />
         </MapView>
       )}
       <Button title='Drop Sign' onPress={() => console.log("Sign Dropped")} />
