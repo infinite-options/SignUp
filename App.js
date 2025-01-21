@@ -6,6 +6,10 @@ import * as Location from "expo-location";
 import MapView, { Marker } from "react-native-maps";
 import { StatusBar } from "expo-status-bar";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import { GOOGLE_API_KEY } from "@env";
+
+console.log("Starting Sign Up!");
+console.log(GOOGLE_API_KEY);
 
 const Stack = createStackNavigator();
 
@@ -107,7 +111,7 @@ function MainScreen() {
         placeholder='Search'
         onPress={handleLocationSelect}
         query={{
-          key: "AIzaSyDNWE3iJJTZ1wQkQUAO19C1AOkKqMIzoFA",
+          key: GOOGLE_API_KEY,
           language: "en",
         }}
         fetchDetails={true}
