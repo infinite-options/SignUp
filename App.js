@@ -73,20 +73,26 @@ function MainScreen() {
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.log("Permission to access location was denied");
-        return;
-      }
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          console.log("Permission to access location was denied");
+          // Consider showing an alert or a message to the user
+          return;
+        }
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-      setRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: zoomLevel,
-        longitudeDelta: zoomLevel,
-      });
+        let location = await Location.getCurrentPositionAsync({});
+        setLocation(location);
+        setRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: zoomLevel,
+          longitudeDelta: zoomLevel,
+        });
+      } catch (error) {
+        console.error("Error fetching location: ", error);
+        // Handle the error, possibly by showing a user-friendly message
+      }
     })();
   }, []);
 
