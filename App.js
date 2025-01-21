@@ -28,6 +28,8 @@ function MainScreen() {
   const [zoomLevel, setZoomLevel] = useState(0.0922);
   const [signCount, setSignCount] = useState(0);
   const [locations, setLocations] = useState([]);
+  const [isDroppingSign, setIsDroppingSign] = useState(false);
+  const [selectedMarker, setSelectedMarker] = useState(null);
 
   const handleLocationSelect = (data, details) => {
     const { lat, lng } = details.geometry.location;
@@ -40,8 +42,30 @@ function MainScreen() {
     console.log(`Selected location: Latitude ${lat}, Longitude ${lng}`);
   };
 
-  const handleZoomIn = () => setZoomLevel((prev) => Math.max(prev - 0.005, 0.001));
-  const handleZoomOut = () => setZoomLevel((prev) => Math.min(prev + 0.005, 1));
+  const handleZoomIn = () =>
+    setRegion((prevRegion) => ({
+      ...prevRegion,
+      latitudeDelta: Math.max(prevRegion.latitudeDelta - 0.005, 0.001),
+      longitudeDelta: Math.max(prevRegion.longitudeDelta - 0.005, 0.001),
+    }));
+  const handleZoomOut = () =>
+    setRegion((prevRegion) => ({
+      ...prevRegion,
+      latitudeDelta: Math.min(prevRegion.latitudeDelta + 0.005, 1),
+      longitudeDelta: Math.min(prevRegion.longitudeDelta + 0.005, 1),
+    }));
+
+  const handleMapPress = (e) => {
+    if (isDroppingSign) {
+      const newLocation = e.nativeEvent.coordinate;
+      setSignCount((prev) => prev + 1);
+      setLocations((prev) => [...prev, newLocation]);
+      console.log(`Sign Dropped at Latitude: ${newLocation.latitude}, Longitude: ${newLocation.longitude}. Total signs: ${signCount + 1}`);
+      setIsDroppingSign(false);
+    } else {
+      setSelectedMarker(null);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -74,6 +98,8 @@ function MainScreen() {
 
   console.log("Rendering MainScreen");
 
+  const formatCoordinate = (coord) => coord.toFixed(4);
+
   return (
     <View style={styles.container}>
       <Text>Enter Open House Address</Text>
@@ -97,39 +123,28 @@ function MainScreen() {
         }}
       />
       {locations.map((loc, index) => (
-        <Text key={index}>{`Sign ${index + 1}: Latitude ${loc.latitude}, Longitude ${loc.longitude}`}</Text>
+        <Text key={index} style={styles.signLabel}>{`Sign ${index + 1}: Latitude ${formatCoordinate(loc.latitude)}, Longitude ${formatCoordinate(loc.longitude)}`}</Text>
       ))}
       {region && (
-        <MapView
-          style={styles.map}
-          region={{
-            ...region,
-            latitudeDelta: zoomLevel,
-            longitudeDelta: zoomLevel,
-          }}
-          showsUserLocation={true}
-          onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
-        >
-          <Marker coordinate={region} title='Selected Location' />
+        <MapView style={styles.map} region={region} showsUserLocation={true} onPress={handleMapPress}>
+          {region && <Marker coordinate={region} pinColor='blue' title='Searched Location' />}
           {locations.map((loc, index) => (
-            <Marker key={index} coordinate={loc} title={`Sign ${index + 1}`} />
+            <Marker key={index} coordinate={loc} title={`Sign ${index + 1}`} onPress={() => setSelectedMarker(index)} />
           ))}
         </MapView>
       )}
       <Button title='Zoom In' onPress={handleZoomIn} />
       <Button title='Zoom Out' onPress={handleZoomOut} />
-      <Button
-        title='Drop Sign'
-        onPress={() => {
-          if (selectedLocation) {
-            setSignCount((prev) => prev + 1);
-            setLocations((prev) => [...prev, selectedLocation]);
-            console.log(`Sign Dropped at Latitude: ${selectedLocation.latitude}, Longitude: ${selectedLocation.longitude}. Total signs: ${signCount + 1}`);
-          } else {
-            console.log("No location selected");
-          }
-        }}
-      />
+      <Button title='Drop Sign' color={isDroppingSign ? "red" : "blue"} onPress={() => setIsDroppingSign((prev) => !prev)} />
+      {selectedMarker !== null && (
+        <Button
+          title='Remove Sign'
+          onPress={() => {
+            setLocations((prev) => prev.filter((_, i) => i !== selectedMarker));
+            setSelectedMarker(null);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -162,5 +177,9 @@ const styles = StyleSheet.create({
   map: {
     width: "100%",
     height: "50%",
+  },
+  signLabel: {
+    textAlign: "left",
+    marginLeft: 10,
   },
 });
