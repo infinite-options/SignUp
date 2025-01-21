@@ -24,6 +24,7 @@ function LoginScreen({ navigation }) {
 function MainScreen() {
   const [location, setLocation] = useState(null);
   const [region, setRegion] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   const handleLocationSelect = (data, details) => {
     const { lat, lng } = details.geometry.location;
@@ -80,11 +81,21 @@ function MainScreen() {
         }}
       />
       {region && (
-        <MapView style={styles.map} region={region}>
+        <MapView style={styles.map} region={region} showsUserLocation={true} onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}>
           <Marker coordinate={region} title='Selected Location' />
+          {selectedLocation && <Marker coordinate={selectedLocation} title='Drop Sign Location' />}
         </MapView>
       )}
-      <Button title='Drop Sign' onPress={() => console.log("Sign Dropped")} />
+      <Button
+        title='Drop Sign'
+        onPress={() => {
+          if (selectedLocation) {
+            console.log(`Sign Dropped at Latitude: ${selectedLocation.latitude}, Longitude: ${selectedLocation.longitude}`);
+          } else {
+            console.log("No location selected");
+          }
+        }}
+      />
     </View>
   );
 }
