@@ -25,17 +25,23 @@ function MainScreen() {
   const [location, setLocation] = useState(null);
   const [region, setRegion] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(0.0922);
+  const [signCount, setSignCount] = useState(0);
+  const [locations, setLocations] = useState([]);
 
   const handleLocationSelect = (data, details) => {
     const { lat, lng } = details.geometry.location;
     setRegion({
       latitude: lat,
       longitude: lng,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
+      latitudeDelta: zoomLevel,
+      longitudeDelta: zoomLevel,
     });
     console.log(`Selected location: Latitude ${lat}, Longitude ${lng}`);
   };
+
+  const handleZoomIn = () => setZoomLevel((prev) => Math.max(prev - 0.005, 0.001));
+  const handleZoomOut = () => setZoomLevel((prev) => Math.min(prev + 0.005, 1));
 
   useEffect(() => {
     (async () => {
@@ -50,11 +56,21 @@ function MainScreen() {
       setRegion({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
+        latitudeDelta: zoomLevel,
+        longitudeDelta: zoomLevel,
       });
     })();
   }, []);
+
+  useEffect(() => {
+    if (location) {
+      setRegion((prevRegion) => ({
+        ...prevRegion,
+        latitudeDelta: zoomLevel,
+        longitudeDelta: zoomLevel,
+      }));
+    }
+  }, [zoomLevel, location]);
 
   console.log("Rendering MainScreen");
 
@@ -80,17 +96,35 @@ function MainScreen() {
           },
         }}
       />
+      {locations.map((loc, index) => (
+        <Text key={index}>{`Sign ${index + 1}: Latitude ${loc.latitude}, Longitude ${loc.longitude}`}</Text>
+      ))}
       {region && (
-        <MapView style={styles.map} region={region} showsUserLocation={true} onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}>
+        <MapView
+          style={styles.map}
+          region={{
+            ...region,
+            latitudeDelta: zoomLevel,
+            longitudeDelta: zoomLevel,
+          }}
+          showsUserLocation={true}
+          onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
+        >
           <Marker coordinate={region} title='Selected Location' />
-          {selectedLocation && <Marker coordinate={selectedLocation} title='Drop Sign Location' />}
+          {locations.map((loc, index) => (
+            <Marker key={index} coordinate={loc} title={`Sign ${index + 1}`} />
+          ))}
         </MapView>
       )}
+      <Button title='Zoom In' onPress={handleZoomIn} />
+      <Button title='Zoom Out' onPress={handleZoomOut} />
       <Button
         title='Drop Sign'
         onPress={() => {
           if (selectedLocation) {
-            console.log(`Sign Dropped at Latitude: ${selectedLocation.latitude}, Longitude: ${selectedLocation.longitude}`);
+            setSignCount((prev) => prev + 1);
+            setLocations((prev) => [...prev, selectedLocation]);
+            console.log(`Sign Dropped at Latitude: ${selectedLocation.latitude}, Longitude: ${selectedLocation.longitude}. Total signs: ${signCount + 1}`);
           } else {
             console.log("No location selected");
           }
